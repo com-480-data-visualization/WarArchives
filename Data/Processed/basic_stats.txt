@@ -1,0 +1,32 @@
+
+=== WWI ===
+Total missions: 1012
+Year range: 1915 - 1918
+Average bombload: 848.64
+Total bombload: 858823.65
+Average planes attacking: 6.03
+Total planes attacking: 6100.00
+
+=== WWII ===
+Total missions: 81958
+Year range: 1940 - 1945
+Average bombload: 19.53
+Total bombload: 1600700.82
+Average planes attacking: 9.64
+Total planes attacking: 789924.00
+
+=== Korean War ===
+Total missions: 1711
+Year range: 2050 - 2051
+Average bombload: 38.14
+Total bombload: 65253.00
+Average planes attacking: 4.62
+Total planes attacking: 7895.00
+
+=== Vietnam War ===
+Total missions: 3502481
+Year range: 1965 - 1975
+Average bombload: 14446.47
+Total bombload: 50598470710.00
+Average planes attacking: 2.13
+Total planes attacking: 7457314.00
