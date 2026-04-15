@@ -1,12 +1,12 @@
 import pandas as pd
 
-WW1 = pd.read_csv("data/Processed/ww1_processed.csv")
-WW2 = pd.read_csv("data/Processed/ww2_processed.csv")
-korea = pd.read_csv("data/Processed/korea_processed.csv")
+WW1 = pd.read_csv("Data/Processed/ww1_processed.csv")
+WW2 = pd.read_csv("Data/Processed/ww2_processed.csv")
+korea = pd.read_csv("Data/Processed/korea_processed.csv")
 
 vietnamDivs = []
 for i in range(1, 11):
-    part = pd.read_csv(f"data/Processed/vietnam_part_{i}.csv")
+    part = pd.read_csv(f"Data/Processed/vietnam_part_{i}.csv")
     vietnamDivs.append(part)
 
 vietnam = pd.concat(vietnamDivs, ignore_index=True)
@@ -38,7 +38,7 @@ for war_name, df in datasets.items():
         output += f"Average planes attacking: {df['planes'].mean():.2f}\n"
         output += f"Total planes attacking: {df['planes'].sum():.2f}\n"
 
-with open("data/Processed/basic_stats.txt", "w", encoding="utf-8") as f:
+with open("Data/Processed/basic_stats.txt", "w", encoding="utf-8") as f:
     f.write(output)
 
-print("Basic statistics written to data/Processed/basic_stats.txt")
+print("Basic statistics written to Data/Processed/basic_stats.txt")

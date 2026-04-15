@@ -138,6 +138,11 @@ WW2Map = {
     "longitude": "longitude"
 }
 
+# NOTE: The standard Korean War THOR dataset lacks target coordinates.
+# If you have THOR_Korean_Bombing_Operations_Exeter.csv, it contains
+# TARGET_NAME, TGT_LATITUDE_WGS84, TGT_LONGITUDE_WGS84.
+# The TGT and TGT_COUNTRY mappings below will work if those columns
+# exist in your CSV; otherwise standardizeData() gracefully skips them.
 koreanMap = {
     "KOREAN_ID": "mission_id",
     "MSN_DATE": "mission_date",
@@ -145,6 +150,8 @@ koreanMap = {
     "AC_TYPE": "aircraft_type",
     "AC_EFFECTIVE": "planes",
     "TOTAL_TONS": "bombload",
+    "TGT": "target_location",
+    "TGT_COUNTRY": "target_country",
 }
 
 vietnamMap = {
@@ -154,20 +161,21 @@ vietnamMap = {
     "AIRCRAFT_ROOT": "aircraft_type",
     "NUMOFACFT": "planes",
     "WEAPONSLOADEDWEIGHT": "bombload",
+    "TGTLOCATION": "target_location",       
     "TGTCOUNTRY": "target_country",
     "TGTLATDD_DDD_WGS84": "latitude",
     "TGTLONDDD_DDD_WGS84": "longitude",
     "WEAPONTYPE": "weapon_type"
 }
 
-WW1Processed = standardizeData(ww1_clean, "WWI", WW1Map)
-WW2Processed = standardizeData(ww2_clean, "WWII", WW2Map)
-koreanProcessed = standardizeData(korean_clean, "Korean War", koreanMap)
-vietnamProcessed = standardizeData(vietnam_clean, "Vietnam War", vietnamMap)
+WW1Processed = standardizeData(WW1Clean, "WWI", WW1Map)
+WW2Processed = standardizeData(WW2Clean, "WWII", WW2Map)
+koreanProcessed = standardizeData(koreanClean, "Korean War", koreanMap)
+vietnamProcessed = standardizeData(vietnamClean, "Vietnam War", vietnamMap)
 
 WW1Processed.to_csv("Data/Processed/ww1_processed.csv", index=False)
 WW2Processed.to_csv("Data/Processed/ww2_processed.csv", index=False)
 koreanProcessed.to_csv("Data/Processed/korea_processed.csv", index=False)
-vietnamprocessed.to_csv("Data/Processed/vietnam_processed.csv", index=False)
+vietnamProcessed.to_csv("Data/Processed/vietnam_processed.csv", index=False) 
 
 print("DONE")

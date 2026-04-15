@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WarArchives — Aerial Bombing Operations</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0a0a0a; color: #e0e0e0; }
+
+        nav {
+            position: fixed; top: 0; width: 100%; z-index: 1000;
+            background: rgba(10,10,10,0.95); backdrop-filter: blur(10px);
+            border-bottom: 1px solid #222; padding: 12px 40px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        nav .logo { font-size: 1.4em; font-weight: 700; color: #ff6b35; }
+        nav .links a { color: #aaa; text-decoration: none; margin-left: 24px; font-size: 0.9em; transition: color 0.3s; }
+        nav .links a:hover { color: #ff6b35; }
+
+        .hero {
+            height: 100vh; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center;
+            background: radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a0a 70%);
+            padding: 0 20px;
+        }
+        .hero h1 { font-size: 4em; font-weight: 800; margin-bottom: 16px; }
+        .hero h1 span { color: #ff6b35; }
+        .hero p { font-size: 1.3em; color: #888; max-width: 600px; margin-bottom: 40px; }
+        .hero .stats-row { display: flex; gap: 40px; flex-wrap: wrap; justify-content: center; }
+        .hero .stat-box { text-align: center; }
+        .hero .stat-box .number { font-size: 2.5em; font-weight: 700; color: #ff6b35; }
+        .hero .stat-box .label { font-size: 0.85em; color: #666; margin-top: 4px; }
+
+        section { padding: 80px 40px; max-width: 1200px; margin: 0 auto; }
+        section h2 { font-size: 2em; margin-bottom: 8px; color: #fff; }
+        section .subtitle { color: #666; margin-bottom: 32px; font-size: 1.05em; }
+
+        .war-selector { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+        .war-btn {
+            padding: 10px 20px; border: 1px solid #333; background: #151515;
+            color: #aaa; border-radius: 6px; cursor: pointer; font-size: 0.9em;
+            transition: all 0.3s;
+        }
+        .war-btn:hover { border-color: #ff6b35; color: #ff6b35; }
+        .war-btn.active { background: #ff6b35; color: #fff; border-color: #ff6b35; }
+
+        #map { height: 500px; border-radius: 12px; border: 1px solid #222; }
+
+        .chart-container {
+            background: #111; border-radius: 12px; border: 1px solid #222;
+            padding: 24px; margin-bottom: 32px;
+            position: relative;
+            height: 450px;
+        }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+
+        .table-container {
+            background: #111; border-radius: 12px; border: 1px solid #222;
+            padding: 24px; margin-bottom: 32px;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #1a1a1a; font-size: 0.9em; }
+        th { color: #ff6b35; font-weight: 600; }
+        td { color: #bbb; }
+        tr:hover td { color: #fff; }
+
+        .no-data {
+            text-align: center; padding: 40px; color: #555; font-size: 1em;
+        }
+
+        footer { text-align: center; padding: 40px; color: #444; font-size: 0.85em; border-top: 1px solid #1a1a1a; }
+        footer a { color: #ff6b35; text-decoration: none; }
+
+        .fade-in { opacity: 0; transform: translateY(30px); transition: all 0.8s ease; }
+        .fade-in.visible { opacity: 1; transform: translateY(0); }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="logo"> WarArchives</div>
+    <div class="links">
+        <a href="#map-section">Map</a>
+        <a href="#timeline-section">Timeline</a>
+        <a href="#countries-section">Countries</a>
+        <a href="#aircraft-section">Aircraft</a>
+        <a href="#targets-section">Targets</a>
+    </div>
+</nav>
+
+<div class="hero" id="hero">
+    <h1>The Skies of <span>War</span></h1>
+    <p>Exploring aerial bombing operations across four major conflicts  from WWI to Vietnam.</p>
+    <div class="stats-row" id="hero-stats"></div>
+</div>
+
+<section id="map-section" class="fade-in">
+    <h2> Bombing Heatmap</h2>
+    <p class="subtitle">Geographic distribution of aerial bombing missions</p>
+    <div class="war-selector" id="map-war-selector"></div>
+    <div id="map"></div>
+</section>
+
+<section id="timeline-section" class="fade-in">
+    <h2> Missions Over Time</h2>
+    <p class="subtitle">Monthly bombing missions per conflict</p>
+    <div class="chart-container">
+        <canvas id="timelineChart"></canvas>
+    </div>
+</section>
+
+<section id="countries-section" class="fade-in">
+    <h2> Who Bombed?</h2>
+    <p class="subtitle">Missions by attacking country and aircraft type</p>
+    <div class="grid-2">
+        <div class="chart-container">
+            <canvas id="countryChart"></canvas>
+        </div>
+        <div class="chart-container" id="aircraft-section">
+            <canvas id="aircraftChart"></canvas>
+        </div>
+    </div>
+</section>
+
+<section id="targets-section" class="fade-in">
+    <h2> Most Bombed Locations</h2>
+    <p class="subtitle">Top targeted locations per conflict</p>
+    <div class="war-selector" id="targets-war-selector"></div>
+    <div class="table-container">
+        <table id="targets-table">
+            <thead><tr><th>Location</th><th>Country</th><th>Missions</th><th>Bombload (tons)</th></tr></thead>
+            <tbody></tbody>
+        </table>
+        <div class="no-data" id="targets-no-data" style="display:none;">
+            No target location data available for this conflict.
+        </div>
+    </div>
+</section>
+
+<footer>
+    <p>WarArchives — COM-480 Data Visualization Project — <a href="https://github.com/com-480-data-visualization/WarArchives" target="_blank">GitHub</a></p>
+    <p>Data source: THOR (Theater History of Operations Reports)</p>
+</footer>
+
+<script>
+let mapData, timelineData, statsData, topTargets, byCountry, topAircraft;
+let heatLayer, map;
+const wars = ["WWI", "WWII", "Korean War", "Vietnam War"];
+const warColors = { "WWI": "#f94144", "WWII": "#f3722c", "Korean War": "#577590", "Vietnam War": "#43aa8b" };
+let selectedWar = "all";
+
+async function loadData() {
+    [mapData, timelineData, statsData, topTargets, byCountry, topAircraft] = await Promise.all([
+        fetch("data/map_data.json").then(r => r.json()),
+        fetch("data/timeline.json").then(r => r.json()),
+        fetch("data/stats.json").then(r => r.json()),
+        fetch("data/top_targets.json").then(r => r.json()),
+        fetch("data/by_country.json").then(r => r.json()),
+        fetch("data/top_aircraft.json").then(r => r.json())
+    ]);
+    buildHero();
+    buildMap();
+    buildTimeline();
+    buildCountryChart();
+    buildAircraftChart();
+    buildWarSelectors();
+    buildTargetsTable("all");
+    initScrollAnimations();
+}
+
+function buildHero() {
+    const totalMissions = statsData.reduce((s, w) => s + w.total_missions, 0);
+    const totalBombload = statsData.reduce((s, w) => s + w.total_bombload, 0);
+    const totalPlanes = statsData.reduce((s, w) => s + w.total_planes, 0);
+    const el = document.getElementById("hero-stats");
+    el.innerHTML = `
+        <div class="stat-box"><div class="number">${(totalMissions/1e6).toFixed(1)}M</div><div class="label">Missions</div></div>
+        <div class="stat-box"><div class="number">${(totalBombload/1e6).toFixed(1)}M</div><div class="label">Tons Dropped</div></div>
+        <div class="stat-box"><div class="number">${(totalPlanes/1e6).toFixed(1)}M</div><div class="label">Sorties</div></div>
+        <div class="stat-box"><div class="number">${statsData.length}</div><div class="label">Conflicts</div></div>
+    `;
+}
+
+function buildMap() {
+    map = L.map("map").setView([30, 20], 3);
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+        attribution: '© OpenStreetMap © CARTO', maxZoom: 18
+    }).addTo(map);
+    updateHeatmap("all");
+}
+
+function updateHeatmap(war) {
+    if (heatLayer) map.removeLayer(heatLayer);
+    let filtered = war === "all" ? mapData : mapData.filter(d => d.war === war);
+    if (filtered.length === 0) return;
+    const maxMissions = Math.max(...filtered.map(d => d.missions));
+    const points = filtered.map(d => [d.lat, d.lon, d.missions / maxMissions]);
+
+    function getRadius() {
+        const z = map.getZoom();
+        if (z <= 3) return 8;
+        if (z <= 5) return 12;
+        if (z <= 7) return 18;
+        return 25;
+    }
+
+    heatLayer = L.heatLayer(points, {
+        radius: getRadius(),
+        blur: 15,
+        maxZoom: 18,
+        minOpacity: 0.3,
+        gradient: { 0.2: '#2196F3', 0.5: '#FF9800', 0.8: '#f44336', 1: '#ff6b35' }
+    }).addTo(map);
+
+    map.off('zoomend.heat');
+    map.on('zoomend.heat', function () {
+        if (heatLayer) {
+            heatLayer.setOptions({ radius: getRadius() });
+            heatLayer.redraw();
+        }
+    });
+
+    if (war !== "all") {
+        const lats = filtered.map(d => d.lat);
+        const lons = filtered.map(d => d.lon);
+        map.fitBounds([[Math.min(...lats), Math.min(...lons)], [Math.max(...lats), Math.max(...lons)]], { padding: [30, 30] });
+    } else {
+        map.setView([30, 20], 3);
+    }
+}
+
+function buildWarSelectors() {
+    ["map-war-selector", "targets-war-selector"].forEach(id => {
+        const el = document.getElementById(id);
+        let html = `<button class="war-btn active" data-war="all">All Wars</button>`;
+        wars.forEach(w => html += `<button class="war-btn" data-war="${w}">${w}</button>`);
+        el.innerHTML = html;
+        el.querySelectorAll(".war-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                el.querySelectorAll(".war-btn").forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+                const war = btn.dataset.war;
+                if (id === "map-war-selector") updateHeatmap(war);
+                if (id === "targets-war-selector") buildTargetsTable(war);
+            });
+        });
+    });
+}
+
+function buildTimeline() {
+    const datasets = wars.map(war => {
+        const warData = timelineData.filter(d => d.war === war).sort((a, b) => a.month.localeCompare(b.month));
+        return {
+            label: war,
+            data: warData.map(d => ({ x: d.month, y: d.missions })),
+            borderColor: warColors[war],
+            backgroundColor: warColors[war] + "33",
+            borderWidth: 1.5, fill: true, pointRadius: 0, tension: 0.3
+        };
+    });
+    new Chart(document.getElementById("timelineChart"), {
+        type: "line",
+        data: { datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,       
+            plugins: { legend: { labels: { color: "#aaa" } } },
+            scales: {
+                x: { type: "category", ticks: { color: "#666", maxTicksLimit: 20, maxRotation: 45 }, grid: { color: "#1a1a1a" } },
+                y: { ticks: { color: "#666" }, grid: { color: "#1a1a1a" }, title: { display: true, text: "Missions", color: "#666" } }
+            }
+        }
+    });
+}
+
+function buildCountryChart() {
+    const sorted = [...byCountry].sort((a, b) => b.missions - a.missions).slice(0, 10);
+    new Chart(document.getElementById("countryChart"), {
+        type: "bar",
+        data: {
+            labels: sorted.map(d => `${d.country} (${d.war})`),
+            datasets: [{
+                label: "Missions",
+                data: sorted.map(d => d.missions),
+                backgroundColor: sorted.map(d => warColors[d.war] || "#ff6b35"),
+                borderRadius: 4
+            }]
+        },
+        options: {
+            indexAxis: "y",
+            responsive: true,
+            maintainAspectRatio: false,       
+            plugins: { legend: { display: false }, title: { display: true, text: "Top 10 Attacking Countries", color: "#aaa" } },
+            scales: {
+                x: { ticks: { color: "#666" }, grid: { color: "#1a1a1a" } },
+                y: { ticks: { color: "#aaa", font: { size: 11 } }, grid: { display: false } }
+            }
+        }
+    });
+}
+
+function buildAircraftChart() {
+    const sorted = [...topAircraft].sort((a, b) => b.missions - a.missions).slice(0, 12);
+    new Chart(document.getElementById("aircraftChart"), {
+        type: "bar",
+        data: {
+            labels: sorted.map(d => d.aircraft_type),
+            datasets: [{
+                label: "Missions",
+                data: sorted.map(d => d.missions),
+                backgroundColor: sorted.map(d => warColors[d.war] || "#ff6b35"),
+                borderRadius: 4
+            }]
+        },
+        options: {
+            indexAxis: "y",
+            responsive: true,
+            maintainAspectRatio: false,       
+            plugins: { legend: { display: false }, title: { display: true, text: "Top Aircraft Types", color: "#aaa" } },
+            scales: {
+                x: { ticks: { color: "#666" }, grid: { color: "#1a1a1a" } },
+                y: { ticks: { color: "#aaa", font: { size: 10 } }, grid: { display: false } }
+            }
+        }
+    });
+}
+
+function buildTargetsTable(war) {
+    const filtered = war === "all" ? topTargets : topTargets.filter(d => d.war === war);
+    const sorted = [...filtered].sort((a, b) => b.missions - a.missions).slice(0, 20);
+    const tbody = document.querySelector("#targets-table tbody");
+    const noData = document.getElementById("targets-no-data");
+
+    if (sorted.length === 0) {
+        tbody.innerHTML = "";
+        noData.style.display = "block";
+    } else {
+        noData.style.display = "none";
+        tbody.innerHTML = sorted.map(d => `
+            <tr>
+                <td>${d.target_location}</td>
+                <td>${d.target_country || "—"}</td>
+                <td>${d.missions.toLocaleString()}</td>
+                <td>${Math.round(d.bombload).toLocaleString()}</td>
+            </tr>
+        `).join("");
+    }
+}
+
+function initScrollAnimations() {
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(e => { if (e.isIntersecting) e.target.classList.add("visible"); });
+    }, { threshold: 0.1 });
+    document.querySelectorAll(".fade-in").forEach(el => observer.observe(el));
+}
+
+loadData();
+</script>
+</body>
+</html>
