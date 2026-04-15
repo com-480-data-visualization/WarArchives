@@ -9,7 +9,7 @@
 
 ### Dataset
 
-The datasets we will be using where found on Kaggle, and are subsections of the THOR database. This database consists of a large amount of data on bombings from WW1 to the Vietnam War. It is very difficult to compile completely, and it is very large, so we have secured the ones that were freely available on Kaggle. These are the ones on WW1, WW2, the Korean War and the Vietnam War.
+The datasets we will be using were found on Kaggle, and are subsections of the THOR database. This database consists of a large amount of data on bombings from WW1 to the Vietnam War. It is very difficult to compile completely, and it is very large, so we have secured the ones that were freely available on Kaggle. These are the ones on WW1, WW2, the Korean War and the Vietnam War.
 
 ### Problematic
 
