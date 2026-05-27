@@ -52,8 +52,8 @@ timeline.to_json("data/timeline.json", orient="records")
 print(f"timeline.json: {len(timeline)} rows")
 
 map_data = all_data.dropna(subset=["latitude", "longitude"]).copy()
-map_data["lat_round"] = (map_data["latitude"] * 2).round() / 2
-map_data["lon_round"] = (map_data["longitude"] * 2).round() / 2
+map_data["lat_round"] = (map_data["latitude"] * 10).round() / 10
+map_data["lon_round"] = (map_data["longitude"] * 10).round() / 10
 
 map_agg = (
     map_data.groupby(["war", "lat_round", "lon_round"])

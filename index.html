@@ -153,6 +153,8 @@
 let mapData, timelineData, statsData, topTargets, byCountry, topAircraft;
 let heatLayer, map;
 const wars = ["WWI", "WWII", "Korean War", "Vietnam War"];
+const mapWars = ["WWI", "WWII", "Vietnam War"];
+const targetWars = ["WWI", "WWII"];
 const warColors = { "WWI": "#f94144", "WWII": "#f3722c", "Korean War": "#577590", "Vietnam War": "#43aa8b" };
 let selectedWar = "all";
 
@@ -189,7 +191,7 @@ function buildHero() {
 }
 
 function buildMap() {
-    map = L.map("map").setView([30, 20], 3);
+    map = L.map("map", {minZoom: 2, maxZoom: 5}).setView([30, 20], 3);
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
         attribution: '© OpenStreetMap © CARTO', maxZoom: 18
     }).addTo(map);
@@ -226,21 +228,17 @@ function updateHeatmap(war) {
             heatLayer.redraw();
         }
     });
-
-    if (war !== "all") {
-        const lats = filtered.map(d => d.lat);
-        const lons = filtered.map(d => d.lon);
-        map.fitBounds([[Math.min(...lats), Math.min(...lons)], [Math.max(...lats), Math.max(...lons)]], { padding: [30, 30] });
-    } else {
-        map.setView([30, 20], 3);
-    }
 }
 
 function buildWarSelectors() {
-    ["map-war-selector", "targets-war-selector"].forEach(id => {
+    const selectorConfig = {
+        "map-war-selector": mapWars,
+        "targets-war-selector": targetWars
+    };
+    Object.entries(selectorConfig).forEach(([id, warList]) => {
         const el = document.getElementById(id);
         let html = `<button class="war-btn active" data-war="all">All Wars</button>`;
-        wars.forEach(w => html += `<button class="war-btn" data-war="${w}">${w}</button>`);
+        warList.forEach(w => {html += `<button class="war-btn" data-war="${w}">${w}</button>`;});
         el.innerHTML = html;
         el.querySelectorAll(".war-btn").forEach(btn => {
             btn.addEventListener("click", () => {
