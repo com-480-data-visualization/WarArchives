@@ -74,3 +74,11 @@
   ```text
   http://localhost:8000
   ```
+
+## Description
+
+The website has a narrative structure, meant to jump at you, the first thing you see is the heatmap of the places bombed for all conflicts joined together, but one can scroll down to see the other graphs, including the missions over time, the attacking countries, the type of aircraft, and the bombed locations. All of these can be accessed by both scrolling and also by the menu on top. Also, in order to ensure exploration is possible, we have allowed in every graph and visualisation, alternatives for displaying, usually reducing the amount of wars displayed, chosing only one, or even changing the scale in a graph.
+
+## Screencast
+
+It is also important to know that the screencast is in the releases section, there is a release called WarArchives Video, which includes the mp4 so that it can be watched.
