@@ -85,13 +85,24 @@ with open("data/stats.json", "w") as f:
     json.dump(stats_dict, f, indent=2)
 print(f"stats.json: {len(stats_dict)} wars")
 
+targets_data = all_data.copy()
+targets_data["target_location"] = targets_data["target_location"].replace("", pd.NA)
+targets_data["target_country"] = targets_data["target_country"].replace("", pd.NA)
+targets_data["target_place"] = targets_data["target_location"].fillna(targets_data["target_country"])
+targets_data = targets_data.dropna(subset=["target_place"])
 top_targets = (
-    all_data.dropna(subset=["target_location"])
-    .groupby(["war", "target_location", "target_country"])
-    .agg(missions=("mission_id", "count"), bombload=("bombload", "sum"))
+    targets_data
+    .groupby(["war", "target_place", "target_country"], dropna=False)
+    .agg(
+        missions=("mission_id", "count"),
+        bombload=("bombload", "sum")
+    )
     .reset_index()
     .sort_values(["war", "missions"], ascending=[True, False])
 )
+top_targets = top_targets.rename(columns={
+    "target_place": "target_location"
+})
 top_per_war = top_targets.groupby("war").head(20)
 top_per_war.to_json("data/top_targets.json", orient="records")
 print(f"top_targets.json: {len(top_per_war)} rows")

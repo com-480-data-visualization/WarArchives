@@ -6,54 +6,71 @@
 | Alexandre Majchrzak| 345483|
 | Antony Picard| 332025|
 
-[Milestone 1](#milestone-1) • [Milestone 2](#milestone-2) • [Milestone 3](#milestone-3)
+## Setup Instructions
 
-## Milestone 1 (20th March, 5pm)
+- Clone or download the GitHub project.
 
-**10% of the final grade**
+- Open a terminal in the project root, where `index.html` and `DataAggregator.py` are located.
 
-This is a preliminary milestone to let you set up goals for your final project and assess the feasibility of your ideas.
-Please, fill the following sections about your project.
+- Make sure Python is installed or install it if it isn't:
 
-*(max. 2000 characters per section)*
+- Install the required pandas Python package (this is used for the processing of the data):
 
-### Dataset
+  ```bash
+  pip install pandas
+  ```
 
-> Find a dataset (or multiple) that you will explore. Assess the quality of the data it contains and how much preprocessing / data-cleaning it will require before tackling visualization. We recommend using a standard dataset as this course is not about scraping nor data processing.
->
-> Hint: some good pointers for finding quality publicly available datasets ([Google dataset search](https://datasetsearch.research.google.com/), [Kaggle](https://www.kaggle.com/datasets), [OpenSwissData](https://opendata.swiss/en/), [SNAP](https://snap.stanford.edu/data/) and [FiveThirtyEight](https://data.fivethirtyeight.com/)).
+- Make sure the processed CSV files are in the expected folder structure:
 
-### Problematic
+  ```text
+  Data/Processed/
+  ├── ww1_processed.csv
+  ├── ww2_processed.csv
+  ├── korea_processed.csv
+  ├── vietnam_part_1.csv
+  ├── vietnam_part_2.csv
+  ├── ...
+  └── vietnam_part_10.csv
+  ```
 
-> Frame the general topic of your visualization and the main axis that you want to develop.
-> - What am I trying to show with my visualization?
-> - Think of an overview for the project, your motivation, and the target audience.
+- Run the data aggregation script to generate the files needed for the website:
 
-### Exploratory Data Analysis
+  ```bash
+  python3 DataAggregator.py
+  ```
 
-> Pre-processing of the data set you chose
-> - Show some basic statistics and get insights about the data
+  On Windows:
 
-### Related work
+  ```bash
+  python DataAggregator.py
+  ```
 
+- This should create the following files in the `data/` folder:
 
-> - What others have already done with the data?
-> - Why is your approach original?
-> - What source of inspiration do you take? Visualizations that you found on other websites or magazines (might be unrelated to your data).
-> - In case you are using a dataset that you have already explored in another context (ML or ADA course, semester project...), you are required to share the report of that work to outline the differences with the submission for this class.
+  ```text
+  data/
+  ├── timeline.json
+  ├── map_data.json
+  ├── stats.json
+  ├── top_targets.json
+  ├── by_country.json
+  └── top_aircraft.json
+  ```
 
-## Milestone 2 (17th April, 5pm)
+- Start a local web server from the project root:
 
-**10% of the final grade**
+  ```bash
+  python3 -m http.server 8000
+  ```
 
+  On Windows:
 
-## Milestone 3 (29th May, 5pm)
+  ```bash
+  python -m http.server 8000
+  ```
 
-**80% of the final grade**
+- Open the visualisation in a browser:
 
-
-## Late policy
-
-- < 24h: 80% of the grade for the milestone
-- < 48h: 70% of the grade for the milestone
-
+  ```text
+  http://localhost:8000
+  ```
