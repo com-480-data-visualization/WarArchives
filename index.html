@@ -58,6 +58,18 @@
             height: 450px;
         }
 
+        .chart-toolbar {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+        }
+        .toggle-btn {
+            padding: 5px 14px; border: 1px solid #333; background: #1a1a1a;
+            color: #aaa; border-radius: 5px; cursor: pointer; font-size: 0.8em;
+            transition: all 0.2s;
+        }
+        .toggle-btn:hover { border-color: #ff6b35; color: #ff6b35; }
+        .toggle-btn.active { background: #ff6b35; color: #fff; border-color: #ff6b35; }
+        .toggle-label { color: #555; font-size: 0.8em; }
+
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
         @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
 
@@ -65,9 +77,34 @@
             background: #111; border-radius: 12px; border: 1px solid #222;
             padding: 24px; margin-bottom: 32px;
         }
+
+        /* Sortable table toolbar */
+        .table-toolbar {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;
+        }
+        .table-toolbar span { color: #555; font-size: 0.85em; }
+        .rows-select {
+            background: #1a1a1a; border: 1px solid #333; color: #aaa;
+            padding: 5px 10px; border-radius: 5px; font-size: 0.85em; cursor: pointer;
+        }
+        .rows-select:focus { outline: none; border-color: #ff6b35; }
+
+        .table-scroll { max-height: 520px; overflow-y: auto; }
+        .table-scroll::-webkit-scrollbar { width: 6px; }
+        .table-scroll::-webkit-scrollbar-track { background: #111; }
+        .table-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        .table-scroll::-webkit-scrollbar-thumb:hover { background: #ff6b35; }
+
         table { width: 100%; border-collapse: collapse; }
+        thead { position: sticky; top: 0; z-index: 2; }
         th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #1a1a1a; font-size: 0.9em; }
-        th { color: #ff6b35; font-weight: 600; }
+        th {
+            color: #ff6b35; font-weight: 600; background: #111;
+            cursor: pointer; user-select: none; white-space: nowrap;
+        }
+        th:hover { color: #ffaa80; }
+        th .sort-icon { margin-left: 5px; opacity: 0.4; font-size: 0.75em; }
+        th.sort-asc .sort-icon, th.sort-desc .sort-icon { opacity: 1; }
         td { color: #bbb; }
         tr:hover td { color: #fff; }
 
@@ -120,11 +157,25 @@
     <h2>🌍 Who Bombed?</h2>
     <p class="subtitle">Missions by attacking country and aircraft type</p>
     <div class="grid-2">
-        <div class="chart-container">
-            <canvas id="countryChart"></canvas>
+        <div>
+            <div class="chart-toolbar">
+                <span class="toggle-label">Scale:</span>
+                <button class="toggle-btn active" id="countryScaleLinear" onclick="setCountryScale('linear')">Linear</button>
+                <button class="toggle-btn" id="countryScaleLog" onclick="setCountryScale('logarithmic')">Log</button>
+            </div>
+            <div class="chart-container">
+                <canvas id="countryChart"></canvas>
+            </div>
         </div>
-        <div class="chart-container" id="aircraft-section">
-            <canvas id="aircraftChart"></canvas>
+        <div id="aircraft-section">
+            <div class="chart-toolbar">
+                <span class="toggle-label">Scale:</span>
+                <button class="toggle-btn active" id="aircraftScaleLinear" onclick="setAircraftScale('linear')">Linear</button>
+                <button class="toggle-btn" id="aircraftScaleLog" onclick="setAircraftScale('logarithmic')">Log</button>
+            </div>
+            <div class="chart-container">
+                <canvas id="aircraftChart"></canvas>
+            </div>
         </div>
     </div>
 </section>
@@ -134,10 +185,28 @@
     <p class="subtitle">Top targeted locations per conflict</p>
     <div class="war-selector" id="targets-war-selector"></div>
     <div class="table-container">
-        <table id="targets-table">
-            <thead><tr><th>Location</th><th>Country</th><th>Missions</th><th>Bombload (tons)</th></tr></thead>
-            <tbody></tbody>
-        </table>
+        <div class="table-toolbar">
+            <span>Show:</span>
+            <select class="rows-select" id="rows-select" onchange="onRowsChange()">
+                <option value="20">20 rows</option>
+                <option value="50" selected>50 rows</option>
+                <option value="100">100 rows</option>
+                <option value="999999">All</option>
+            </select>
+        </div>
+        <div class="table-scroll">
+            <table id="targets-table">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable('target_location')" id="th-target_location">Location <span class="sort-icon">⇅</span></th>
+                        <th onclick="sortTable('target_country')" id="th-target_country">Country <span class="sort-icon">⇅</span></th>
+                        <th onclick="sortTable('missions')" id="th-missions">Missions <span class="sort-icon">↓</span></th>
+                        <th onclick="sortTable('bombload')" id="th-bombload">Bombload (tons) <span class="sort-icon">⇅</span></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
         <div class="no-data" id="targets-no-data" style="display:none;">
             No target location data available for this conflict.
         </div>
@@ -158,6 +227,13 @@ const targetWars = ["WWI", "WWII"];
 const warColors = { "WWI": "#f94144", "WWII": "#f3722c", "Korean War": "#577590", "Vietnam War": "#43aa8b" };
 let selectedWar = "all";
 
+let countryChartInstance = null;
+let aircraftChartInstance = null;
+
+let currentTargetsWar = "all";
+let sortColumn = "missions";
+let sortDir = "desc";
+
 async function loadData() {
     [mapData, timelineData, statsData, topTargets, byCountry, topAircraft] = await Promise.all([
         fetch("data/map_data.json").then(r => r.json()),
@@ -170,8 +246,8 @@ async function loadData() {
     buildHero();
     buildMap();
     buildTimeline();
-    buildCountryChart();
-    buildAircraftChart();
+    buildCountryChart('linear');
+    buildAircraftChart('linear');
     buildWarSelectors();
     buildTargetsTable("all");
     initScrollAnimations();
@@ -246,7 +322,10 @@ function buildWarSelectors() {
                 btn.classList.add("active");
                 const war = btn.dataset.war;
                 if (id === "map-war-selector") updateHeatmap(war);
-                if (id === "targets-war-selector") buildTargetsTable(war);
+                if (id === "targets-war-selector") {
+                    currentTargetsWar = war;
+                    buildTargetsTable(war);
+                }
             });
         });
     });
@@ -278,9 +357,10 @@ function buildTimeline() {
     });
 }
 
-function buildCountryChart() {
+function buildCountryChart(scaleType) {
     const sorted = [...byCountry].sort((a, b) => b.missions - a.missions).slice(0, 10);
-    new Chart(document.getElementById("countryChart"), {
+    if (countryChartInstance) countryChartInstance.destroy();
+    countryChartInstance = new Chart(document.getElementById("countryChart"), {
         type: "bar",
         data: {
             labels: sorted.map(d => `${d.country} (${d.war})`),
@@ -295,18 +375,36 @@ function buildCountryChart() {
             indexAxis: "y",
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false }, title: { display: true, text: "Top 10 Attacking Countries", color: "#aaa" } },
+            plugins: {
+                legend: { display: false },
+                title: { display: true, text: "Top 10 Attacking Countries", color: "#aaa" },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ` ${ctx.parsed.x.toLocaleString()} missions`
+                    }
+                }
+            },
             scales: {
-                x: { ticks: { color: "#666" }, grid: { color: "#1a1a1a" } },
+                x: {
+                    type: scaleType,
+                    ticks: {
+                        color: "#666",
+                        callback: val => scaleType === 'logarithmic'
+                            ? (Number.isInteger(Math.log10(val)) ? val.toLocaleString() : '')
+                            : val.toLocaleString()
+                    },
+                    grid: { color: "#1a1a1a" }
+                },
                 y: { ticks: { color: "#aaa", font: { size: 11 } }, grid: { display: false } }
             }
         }
     });
 }
 
-function buildAircraftChart() {
+function buildAircraftChart(scaleType) {
     const sorted = [...topAircraft].sort((a, b) => b.missions - a.missions).slice(0, 12);
-    new Chart(document.getElementById("aircraftChart"), {
+    if (aircraftChartInstance) aircraftChartInstance.destroy();
+    aircraftChartInstance = new Chart(document.getElementById("aircraftChart"), {
         type: "bar",
         data: {
             labels: sorted.map(d => d.aircraft_type),
@@ -321,27 +419,91 @@ function buildAircraftChart() {
             indexAxis: "y",
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false }, title: { display: true, text: "Top Aircraft Types", color: "#aaa" } },
+            plugins: {
+                legend: { display: false },
+                title: { display: true, text: "Top Aircraft Types", color: "#aaa" },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ` ${ctx.parsed.x.toLocaleString()} missions`
+                    }
+                }
+            },
             scales: {
-                x: { ticks: { color: "#666" }, grid: { color: "#1a1a1a" } },
+                x: {
+                    type: scaleType,
+                    ticks: {
+                        color: "#666",
+                        callback: val => scaleType === 'logarithmic'
+                            ? (Number.isInteger(Math.log10(val)) ? val.toLocaleString() : '')
+                            : val.toLocaleString()
+                    },
+                    grid: { color: "#1a1a1a" }
+                },
                 y: { ticks: { color: "#aaa", font: { size: 10 } }, grid: { display: false } }
             }
         }
     });
 }
 
+function setCountryScale(scaleType) {
+    document.getElementById('countryScaleLinear').classList.toggle('active', scaleType === 'linear');
+    document.getElementById('countryScaleLog').classList.toggle('active', scaleType === 'logarithmic');
+    buildCountryChart(scaleType);
+}
+
+function setAircraftScale(scaleType) {
+    document.getElementById('aircraftScaleLinear').classList.toggle('active', scaleType === 'linear');
+    document.getElementById('aircraftScaleLog').classList.toggle('active', scaleType === 'logarithmic');
+    buildAircraftChart(scaleType);
+}
+
+function sortTable(col) {
+    if (sortColumn === col) {
+        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortColumn = col;
+        sortDir = (col === 'missions' || col === 'bombload') ? 'desc' : 'asc';
+    }
+    // Update header icons
+    ['target_location','target_country','missions','bombload'].forEach(c => {
+        const th = document.getElementById('th-' + c);
+        th.classList.remove('sort-asc','sort-desc');
+        th.querySelector('.sort-icon').textContent = '⇅';
+    });
+    const activeTh = document.getElementById('th-' + col);
+    activeTh.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+    activeTh.querySelector('.sort-icon').textContent = sortDir === 'asc' ? '↑' : '↓';
+
+    buildTargetsTable(currentTargetsWar);
+}
+
+function onRowsChange() {
+    buildTargetsTable(currentTargetsWar);
+}
+
 function buildTargetsTable(war) {
-    const filtered = war === "all" ? topTargets : topTargets.filter(d => d.war === war);
-    const sorted = [...filtered].sort((a, b) => b.missions - a.missions).slice(0, 20);
+    const maxRows = parseInt(document.getElementById('rows-select').value) || 50;
+    let filtered = war === "all" ? topTargets : topTargets.filter(d => d.war === war);
+
+    filtered = [...filtered].sort((a, b) => {
+        let va = a[sortColumn] ?? '';
+        let vb = b[sortColumn] ?? '';
+        if (typeof va === 'string') va = va.toLowerCase();
+        if (typeof vb === 'string') vb = vb.toLowerCase();
+        if (va < vb) return sortDir === 'asc' ? -1 : 1;
+        if (va > vb) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+    }).slice(0, maxRows);
+
     const tbody = document.querySelector("#targets-table tbody");
     const noData = document.getElementById("targets-no-data");
 
-    if (sorted.length === 0) {
+    if (filtered.length === 0) {
         tbody.innerHTML = "";
         noData.style.display = "block";
     } else {
         noData.style.display = "none";
-        tbody.innerHTML = sorted.map(d => `
+        tbody.innerHTML = filtered.map(d => `
             <tr>
                 <td>${d.target_location}</td>
                 <td>${d.target_country || "—"}</td>
